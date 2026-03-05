@@ -3,14 +3,8 @@
   "name": "Cognitive Guardian",
   "version": "1.0",
   "description": "Tu sistema inmunológico digital. Te protege de manipulación, desinformación y pérdida de atención.",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["tabs", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },

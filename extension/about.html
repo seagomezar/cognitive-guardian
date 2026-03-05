@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cognitive Guardian</title>
+    <style>
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background-color: #f8fafc;
+        color: #334155;
+        line-height: 1.6;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+
+      .card {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      h1 {
+        color: #8b5cf6;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 0;
+      }
+
+      .icon {
+        font-size: 24px;
+      }
+
+      p {
+        margin-bottom: 20px;
+      }
+
+      #langSelect {
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+        font-family: inherit;
+        margin-bottom: 20px;
+        background: white;
+        color: #475569;
+        outline: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <select id="langSelect">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+      <option value="fr">Français</option>
+    </select>
+
+    <div class="card">
+      <h1>
+        <span class="icon">🛡️</span>
+        <span id="el_about_title">Acerca de Cognitive Guardian</span>
+      </h1>
+      <p id="el_about_content">
+        Cognitive Guardian actúa como tu sistema inmunológico digital...
+      </p>
+    </div>
+
+    <script src="i18n.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const langSelect = document.getElementById("langSelect");
+        const elAboutTitle = document.getElementById("el_about_title");
+        const elAboutContent = document.getElementById("el_about_content");
+
+        let currentLocale = await I18n.getCurrentLocale();
+        langSelect.value = currentLocale;
+
+        function translateUI() {
+          elAboutTitle.textContent = I18n.tSync(currentLocale, "about_title");
+          elAboutContent.textContent = I18n.tSync(
+            currentLocale,
+            "about_content",
+          );
+        }
+
+        translateUI();
+
+        langSelect.addEventListener("change", async (e) => {
+          currentLocale = e.target.value;
+          await I18n.setLocale(currentLocale);
+          translateUI();
+        });
+
+        // Listen to language changes from the popup so they sync in real-time
+        chrome.storage.onChanged.addListener((changes, area) => {
+          if (area === "local" && changes.cg_language) {
+            currentLocale = changes.cg_language.newValue;
+            langSelect.value = currentLocale;
+            translateUI();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

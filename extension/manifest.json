@@ -1,18 +1,31 @@
 {
   "manifest_version": 3,
-  "name": "Cognitive Guardian",
+  "name": "__MSG_extName__",
   "version": "1.0",
-  "description": "Tu sistema inmunológico digital. Te protege de manipulación, desinformación y pérdida de atención.",
-  "permissions": ["tabs", "scripting", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "default_locale": "en",
+  "description": "__MSG_extDesc__",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "css": ["styles.css"],
-      "js": ["content.js"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {
@@ -22,5 +35,10 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

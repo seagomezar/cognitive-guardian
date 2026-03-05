@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cognitive Guardian</title>
+  <style>
+    body {
+      width: 250px;
+      padding: 15px;
+      font-family: 'Inter', system-ui, sans-serif;
+      text-align: center;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      color: #8b5cf6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    p {
+      font-size: 13px;
+      color: #64748b;
+    }
+    button {
+      padding: 10px 16px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    #toggleBtn {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    #toggleBtn:hover {
+      background-color: #7c3aed;
+    }
+    #toggleBtn.active {
+      background-color: #ef4444;
+    }
+    #toggleBtn.active:hover {
+      background-color: #dc2626;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      margin-right: 5px;
+    }
+    .status-indicator.on {
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+  </style>
+</head>
+<body>
+  <h1><span class="icon">🛡️</span> Cognitive Guardian</h1>
+  <p>Tu sistema inmunológico digital.</p>
+  
+  <div style="margin: 15px 0;">
+    <span id="statusIndicator" class="status-indicator"></span>
+    <span id="statusText">Inactivo</span>
+  </div>
+  
+  <button id="toggleBtn">Iniciar Guardián</button>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

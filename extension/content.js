@@ -43,24 +43,47 @@ function showOverlay(alertData) {
       <button class="cg-close-btn">&times;</button>
     </div>
     <div class="cg-alert-body">
-      ${alertData.message}
+      <span class="cg-alert-message"></span>
       
-      <div class="cg-feedback-container" id="feedback-container-${alertData.timestamp}">
+      <div class="cg-feedback-container">
         <div class="cg-feedback-row">
-          <span>${alertData.feedbackAskText}</span>
+          <span class="cg-feedback-ask"></span>
           <div class="cg-feedback-buttons">
-            <button class="cg-feedback-btn up" data-vote="up">👍 ${alertData.feedbackYesText}</button>
-            <button class="cg-feedback-btn down" data-vote="down">👎 ${alertData.feedbackNoText}</button>
+            <button class="cg-feedback-btn up" data-vote="up">👍 <span class="cg-feedback-yes"></span></button>
+            <button class="cg-feedback-btn down" data-vote="down">👎 <span class="cg-feedback-no"></span></button>
           </div>
         </div>
         
-        <div class="cg-feedback-input-area" id="feedback-input-${alertData.timestamp}">
-           <textarea class="cg-feedback-textarea" placeholder="${alertData.feedbackPlaceholderText}"></textarea>
-           <button class="cg-feedback-submit-btn">${alertData.feedbackSubmitText}</button>
+        <div class="cg-feedback-input-area">
+           <textarea class="cg-feedback-textarea"></textarea>
+           <button class="cg-feedback-submit-btn"></button>
         </div>
       </div>
     </div>
   `;
+
+  // Safely inject text to prevent XSS
+  alertBox.querySelector(".cg-alert-message").textContent = alertData.message;
+
+  const feedbackContainerTemp = alertBox.querySelector(
+    ".cg-feedback-container",
+  );
+  feedbackContainerTemp.id = `feedback-container-${alertData.timestamp}`;
+  feedbackContainerTemp.querySelector(".cg-feedback-ask").textContent =
+    alertData.feedbackAskText;
+  feedbackContainerTemp.querySelector(".cg-feedback-yes").textContent =
+    alertData.feedbackYesText;
+  feedbackContainerTemp.querySelector(".cg-feedback-no").textContent =
+    alertData.feedbackNoText;
+
+  const inputAreaTemp = feedbackContainerTemp.querySelector(
+    ".cg-feedback-input-area",
+  );
+  inputAreaTemp.id = `feedback-input-${alertData.timestamp}`;
+  inputAreaTemp.querySelector(".cg-feedback-textarea").placeholder =
+    alertData.feedbackPlaceholderText;
+  inputAreaTemp.querySelector(".cg-feedback-submit-btn").textContent =
+    alertData.feedbackSubmitText;
 
   // Handle Feedback Submission
   const feedbackContainer = alertBox.querySelector(
@@ -74,8 +97,12 @@ function showOverlay(alertData) {
 
   // Function to finalize payload
   const finalizeFeedback = (vote, commentText) => {
-    // Update UI
-    feedbackContainer.innerHTML = `<span class="cg-feedback-thanks">✨ ${alertData.feedbackThanksText}</span>`;
+    // Update UI safely
+    feedbackContainer.innerHTML = "";
+    const thanksSpan = document.createElement("span");
+    thanksSpan.className = "cg-feedback-thanks";
+    thanksSpan.textContent = `✨ ${alertData.feedbackThanksText}`;
+    feedbackContainer.appendChild(thanksSpan);
 
     // Send data to background layer to forward to ADK
     chrome.runtime.sendMessage({
@@ -103,9 +130,8 @@ function showOverlay(alertData) {
 
         // Dim the YES button so it's clear what was pressed
         const upBtn = feedbackContainer.querySelector(".cg-feedback-btn.up");
-        upBtn.style.opacity = "0.4";
-        btn.style.background = "#fee2e2";
-        btn.style.borderColor = "#fca5a5";
+        upBtn.classList.add("dimmed");
+        btn.classList.add("selected");
       } else {
         finalizeFeedback("up", "");
       }
@@ -147,12 +173,13 @@ function speakAlert(message, locale) {
 
     const utterance = new SpeechSynthesisUtterance(message);
 
-    let ttsLang = "en-US";
-    if (locale === "es") ttsLang = "es-ES";
-    if (locale === "fr") ttsLang = "fr-FR";
-    if (locale === "pt") ttsLang = "pt-BR";
-
-    utterance.lang = ttsLang;
+    const ttsLangMap = {
+      es: "es-ES",
+      fr: "fr-FR",
+      pt: "pt-BR",
+      en: "en-US",
+    };
+    utterance.lang = ttsLangMap[locale] || "en-US";
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     window.speechSynthesis.speak(utterance);
@@ -173,7 +200,7 @@ function handleAgentAction(actionPayload) {
     actionPayload.message
   ) {
     const msg = actionPayload.voice_message || actionPayload.message;
-    speakAlert(msg, actionPayload.locale || "es");
+    speakAlert(msg, actionPayload.locale || "en");
   }
 }
 

@@ -251,3 +251,12 @@
     opacity 0.3s ease,
     transform 0.3s ease;
 }
+
+.cg-feedback-btn.up.dimmed {
+  opacity: 0.4;
+}
+
+.cg-feedback-btn.down.selected {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}

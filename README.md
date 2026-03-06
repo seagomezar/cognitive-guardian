@@ -27,7 +27,7 @@ By combining a lightweight Chrome Extension with a powerful backend powered by t
 The project consists of two tightly-coupled but responsibilities-separated pillars:
 
 1. **The Sensor / Actuator (Frontend):** A Chrome Extension (Manifest V3) that runs a Service Worker (`background.js`) to capture the active tab's visual state. It communicates with the backend and uses a Content Script to inject non-intrusive UI alerts, CSS highlighting, and read text aloud. Includes an internationalized (i18n) settings and analytics popup.
-2. **The Agent Engine (Backend):** An Agent Development Kit (ADK) server hosted on **Google Cloud**. It exposes an API that receives the visual frames. It uses the Gemini API to analyze the context (Phishing, Fake News, Doomscrolling) and returns structured JSON commands (Actions) back to the browser.
+2. **The Agent Engine (Backend):** A **FastAPI** server (served via uvicorn) that exposes `POST /api/analyze`. It receives visual frames from the extension and runs them through an ADK `LlmAgent` backed by **Gemini 2.5 Flash**. The agent returns a structured `GuardianDecision` JSON (action, type, message, confidence). Sessions are managed per-domain using ADK's `InMemorySessionService` (session ID = `cg-<domain>`), with a 15-second cooldown between interventions and a rolling 10-frame history for context.
 
 _(Please refer to the architecture diagram uploaded in the Devpost submission)._
 
@@ -35,8 +35,9 @@ _(Please refer to the architecture diagram uploaded in the Devpost submission)._
 
 ## 🛠️ Technologies Used
 
-- **AI Model:** Google Gemini (Multimodal Vision capabilities)
-- **Agent Framework:** ADK (Agent Development Kit) / Google GenAI SDK
+- **AI Model:** Google Gemini 2.5 Flash (`gemini-2.5-flash`, multimodal vision)
+- **Agent Framework:** Google ADK (`google-adk[gemini]>=1.0.0`) — `LlmAgent` with structured `output_schema`
+- **Backend:** FastAPI + uvicorn (ASGI), Pydantic v2 for structured output, python-dotenv
 - **Cloud Infrastructure:** Google Cloud Platform (GCP)
 - **Frontend:** HTML, Vanilla CSS, JavaScript (Chrome Extension APIs)
 - **Storage:** `chrome.storage.local` for decentralized analytics and metrics tracking.
@@ -47,20 +48,22 @@ _(Please refer to the architecture diagram uploaded in the Devpost submission)._
 
 To run **Cognitive Guardian** locally for judging:
 
-### 1. Backend (ADK) Setup
+### 1. Backend (FastAPI + ADK) Setup
 
 1. Navigate to the `backend/` directory.
-2. Ensure you have Python installed. Install dependencies (assuming you have initialized the ADK environment):
+2. Ensure you have Python 3.11+ installed. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Set your Google Gemini API and Google Cloud credentials in a `.env` file.
-4. Start the ADK agent server:
-   ```bash
-   # Run your ADK specific start command, e.g.:
-   python main.py
+3. Create a `.env` file in `backend/` with your API key:
+   ```env
+   GOOGLE_API_KEY=your_google_api_key_here
    ```
-5. The backend should now be listening on `http://localhost:8000`.
+4. Start the FastAPI server:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+5. The backend is now running at `http://localhost:8000`. You can verify with `curl http://localhost:8000/docs` to see the auto-generated API docs.
 
 ### 2. Frontend (Chrome Extension) Setup
 
@@ -71,6 +74,40 @@ To run **Cognitive Guardian** locally for judging:
 5. Pin the **Cognitive Guardian** purple shield icon to your toolbar.
 6. Click the extension, review and accept the Privacy terms, and click **"Start Guardian"**.
 7. _Voilá!_ Open a sample phishing email or start doomscrolling Twitter to see the Guardian intervene.
+
+---
+
+## 🔌 API Reference
+
+### `POST /api/analyze`
+
+Analyzes a browser screenshot and returns a guardian decision.
+
+**Request body:**
+```json
+{
+  "image": "data:image/jpeg;base64,<base64-encoded-screenshot>",
+  "metadata": { "url": "https://example.com", "title": "Page Title" },
+  "timestamp": 1712345678000
+}
+```
+
+**Response (`GuardianDecision`):**
+```json
+{
+  "action": "alert",
+  "type": "phishing",
+  "message": "This page shows signs of a phishing attempt. Be cautious.",
+  "voice_message": "Warning: this page may be a phishing attempt.",
+  "confidence": 0.85
+}
+```
+
+- `action`: `"alert"` | `"voice"` | `"none"`
+- `type`: `"phishing"` | `"fakenews"` | `"manipulation"` | `"doomscrolling"` | `"burnout"` | `"none"`
+- `confidence`: `0.0–1.0`; responses with confidence < 0.7 are suppressed and return `{"action": "none"}`
+
+Requests within **15 seconds** of a prior intervention for the same domain return `{"action": "none"}` immediately (cooldown).
 
 ---
 

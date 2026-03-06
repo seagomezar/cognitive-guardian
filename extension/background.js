@@ -5,58 +5,42 @@ console.log("Cognitive Guardian: Background service worker started.");
 const BACKEND_URL = "http://localhost:8000"; // ADK endpoint TODO
 let captureInterval = null;
 let isMonitoring = false;
-let mockIndex = 0;
-
 // API functions
 async function sendFrameToBackend(dataUrl, metadata) {
-  console.log("📸 Frame captured for analysis:", metadata.url.substring(0, 50));
-
-  // Get dynamic language to respond with proper mock
+  console.log("📸 Frame captured, sending to backend:", metadata.url.substring(0, 50));
   const locale = await I18n.getCurrentLocale();
+  const timestamp = Date.now();
 
-  // Dummy sequence to simulate different interventions over time
-  const mockScenarios = [
-    {
-      action: "alert",
-      type: "procrastination",
-      messageKey: "mock_procrastination",
-    },
-    { action: "none" },
-    { action: "alert", type: "phishing", messageKey: "mock_phishing" },
-    { action: "none" },
-    { action: "alert", type: "fakenews", messageKey: "mock_fakenews" },
-    { action: "none" },
-    { action: "alert", type: "burnout", messageKey: "mock_burnout" },
-    { action: "none" },
-  ];
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: dataUrl, metadata, timestamp }),
+    });
 
-  // MOCKING THE RESPONSE FOR NOW
-  setTimeout(() => {
-    const rawResult = mockScenarios[mockIndex];
-    let result = { ...rawResult };
-
-    if (result.action !== "none") {
-      result.message = I18n.tSync(locale, result.messageKey);
-      result.locale = locale; // Pass locale to content script for accurate Text-To-Speech pronunciation
-      result.timestamp = Date.now();
-
-      // Pass translated feedback strings specifically to UI
-      result.feedbackAskText = I18n.tSync(locale, "feedback_ask");
-      result.feedbackYesText = I18n.tSync(locale, "feedback_yes");
-      result.feedbackNoText = I18n.tSync(locale, "feedback_no");
-      result.feedbackThanksText = I18n.tSync(locale, "feedback_thanks");
-      result.feedbackPlaceholderText = I18n.tSync(
-        locale,
-        "feedback_placeholder",
-      );
-      result.feedbackSubmitText = I18n.tSync(locale, "feedback_submit");
-
-      console.log("🤖 Mock Analysis result:", result);
-      handleAgentAction(result);
+    if (!response.ok) {
+      console.error("Backend error:", response.status);
+      return;
     }
 
-    mockIndex = (mockIndex + 1) % mockScenarios.length;
-  }, 1000); // Simulate 1s network latency
+    const result = await response.json();
+    if (!result || result.action === "none") return;
+
+    result.locale = locale;
+    result.timestamp = timestamp;
+    result.feedbackAskText = I18n.tSync(locale, "feedback_ask");
+    result.feedbackYesText = I18n.tSync(locale, "feedback_yes");
+    result.feedbackNoText = I18n.tSync(locale, "feedback_no");
+    result.feedbackThanksText = I18n.tSync(locale, "feedback_thanks");
+    result.feedbackPlaceholderText = I18n.tSync(locale, "feedback_placeholder");
+    result.feedbackSubmitText = I18n.tSync(locale, "feedback_submit");
+
+    console.log("🤖 ADK Analysis result:", result);
+    handleAgentAction(result);
+  } catch (error) {
+    console.error("Failed to contact backend:", error);
+    // Graceful degradation: skip this frame silently
+  }
 }
 
 function handleAgentAction(result) {

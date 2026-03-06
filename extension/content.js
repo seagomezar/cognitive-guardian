@@ -31,6 +31,9 @@ function showOverlay(alertData) {
   ) {
     alertClass = "cg-alert-info";
     icon = "🧘";
+  } else if (alertData.type === "aiimage") {
+    alertClass = "cg-alert-warning";
+    icon = "🤖";
   }
 
   const alertBox = document.createElement("div");
@@ -225,9 +228,158 @@ function handleAgentAction(actionPayload) {
   }
 }
 
+// --- AI Image Detection ---
+
+const _analyzedImageHashes = new Set();
+const _imageBadges = new Map(); // imageHash -> badge element
+
+function hashString(str) {
+  // Simple djb2 hash for dedup (not crypto)
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) + h) ^ str.charCodeAt(i);
+  }
+  return (h >>> 0).toString(36);
+}
+
+function attachImageBadge(img, imageHash) {
+  // Position a small warning badge over the image
+  const badge = document.createElement("div");
+  badge.className = "cg-ai-badge";
+  badge.setAttribute("data-cg-hash", imageHash);
+  badge.textContent = "🤖 Possible AI image";
+  badge.title = "Cognitive Guardian: This image may be AI-generated";
+
+  // Ensure the parent is positioned so the badge can be absolute
+  const parent = img.parentElement;
+  if (parent) {
+    const parentStyle = getComputedStyle(parent);
+    if (parentStyle.position === "static") {
+      parent.style.position = "relative";
+    }
+    parent.appendChild(badge);
+  }
+
+  _imageBadges.set(imageHash, badge);
+}
+
+function extractAndSendImage(img) {
+  const src = img.src || img.currentSrc;
+  if (!src || src.startsWith("data:")) return;
+
+  const imageHash = hashString(src.substring(0, 200));
+  if (_analyzedImageHashes.has(imageHash)) return;
+  _analyzedImageHashes.add(imageHash);
+
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  if (w < 150 || h < 150) return; // skip icons/thumbnails
+
+  const timestamp = Date.now();
+  const context = window.location.href;
+
+  // Try same-origin canvas extraction first
+  let imageData = "";
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    imageData = canvas.toDataURL("image/jpeg", 0.9);
+  } catch (e) {
+    // Cross-origin: tainted canvas — send URL to backend instead
+    imageData = "";
+  }
+
+  chrome.runtime.sendMessage({
+    command: "ANALYZE_IMAGE",
+    payload: {
+      image: imageData,
+      url: src,
+      context,
+      timestamp,
+      imageHash,
+      tabId: null, // background.js fills this from sender.tab.id
+    },
+  });
+}
+
+function scanPageForAiImages() {
+  const imgs = document.querySelectorAll("img");
+  imgs.forEach((img) => {
+    if (img.complete && img.naturalWidth >= 150 && img.naturalHeight >= 150) {
+      extractAndSendImage(img);
+    } else {
+      img.addEventListener("load", () => {
+        if (img.naturalWidth >= 150 && img.naturalHeight >= 150) {
+          extractAndSendImage(img);
+        }
+      }, { once: true });
+    }
+  });
+}
+
+// Watch for dynamically added images
+const _imageObserver = new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    for (const node of mutation.addedNodes) {
+      if (node.nodeType !== 1) continue;
+      if (node.tagName === "IMG") {
+        if (node.naturalWidth >= 150 && node.naturalHeight >= 150) {
+          extractAndSendImage(node);
+        } else {
+          node.addEventListener("load", () => {
+            if (node.naturalWidth >= 150 && node.naturalHeight >= 150) {
+              extractAndSendImage(node);
+            }
+          }, { once: true });
+        }
+      }
+      // Also check descendants
+      node.querySelectorAll && node.querySelectorAll("img").forEach((img) => {
+        if (img.complete && img.naturalWidth >= 150 && img.naturalHeight >= 150) {
+          extractAndSendImage(img);
+        }
+      });
+    }
+  }
+});
+
+// Start scanning only when monitoring is active (background will trigger via message)
+let _aiImageScanActive = false;
+
+function startAiImageScanning() {
+  if (_aiImageScanActive) return;
+  _aiImageScanActive = true;
+  scanPageForAiImages();
+  _imageObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function stopAiImageScanning() {
+  _aiImageScanActive = false;
+  _imageObserver.disconnect();
+}
+
 // Receive messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "AGENT_INTERVENTION") {
     handleAgentAction(message.payload);
+  } else if (message.type === "IMAGE_FLAGGED") {
+    const { imageHash } = message.payload;
+    // Find the image with this hash and attach a badge
+    const src_prefix_hash = imageHash;
+    const imgs = document.querySelectorAll("img");
+    imgs.forEach((img) => {
+      const src = img.src || img.currentSrc;
+      if (src && hashString(src.substring(0, 200)) === src_prefix_hash) {
+        if (!_imageBadges.has(imageHash)) {
+          attachImageBadge(img, imageHash);
+        }
+      }
+    });
+  } else if (message.type === "START_AI_IMAGE_SCAN") {
+    startAiImageScanning();
+  } else if (message.type === "STOP_AI_IMAGE_SCAN") {
+    stopAiImageScanning();
   }
 });

@@ -100,12 +100,22 @@ function captureAndSend() {
 }
 
 // Controls
+function broadcastToActiveTab(message) {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (tabs.length === 0) return;
+    chrome.tabs.sendMessage(tabs[0].id, message, () => {
+      if (chrome.runtime.lastError) { /* tab not ready yet */ }
+    });
+  });
+}
+
 function startMonitoring() {
   if (isMonitoring) return;
   isMonitoring = true;
   console.log("Started monitoring...");
   captureAndSend(); // capture manual once
   captureInterval = setInterval(captureAndSend, 5000); // 5 seconds interval
+  broadcastToActiveTab({ type: "START_AI_IMAGE_SCAN" });
 }
 
 function stopMonitoring() {
@@ -115,6 +125,7 @@ function stopMonitoring() {
     captureInterval = null;
   }
   console.log("Stopped monitoring.");
+  broadcastToActiveTab({ type: "STOP_AI_IMAGE_SCAN" });
 }
 
 // Listen for messages from popup or content script
@@ -127,6 +138,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ status: "stopped" });
   } else if (message.command === "GET_STATUS") {
     sendResponse({ isMonitoring: isMonitoring });
+  } else if (message.command === "ANALYZE_IMAGE") {
+    // Relay image analysis request to backend, send result back to content script
+    const { image, url, context, timestamp, imageHash } = message.payload;
+    const senderTabId = sender.tab && sender.tab.id;
+    (async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/analyze-image`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image, url, context, timestamp, image_hash: imageHash }),
+        });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.is_ai_generated && result.confidence >= 0.75 && senderTabId) {
+          chrome.tabs.sendMessage(senderTabId, {
+            type: "IMAGE_FLAGGED",
+            payload: { imageHash, confidence: result.confidence, reasoning: result.reasoning },
+          });
+        }
+      } catch (err) {
+        console.error("AI image analysis failed:", err);
+      }
+    })();
+    sendResponse({ status: "queued" });
   } else if (message.command === "SUBMIT_FEEDBACK") {
     console.log("📝 User Feedback sent to ADK Model:", message.payload);
 

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from cognitive_guardian.agent import root_agent
+from cognitive_guardian.agent import root_agent, ai_image_agent
 import json
 import uvicorn
 from urllib.parse import urlparse
@@ -23,15 +23,29 @@ app.add_middleware(
 )
 
 APP_NAME = "cognitive_guardian"
+AI_IMAGE_APP_NAME = "ai_image_detector"
 session_service = InMemorySessionService()
+ai_image_session_service = InMemorySessionService()
 runner = Runner(agent=root_agent, app_name=APP_NAME, session_service=session_service)
+ai_image_runner = Runner(agent=ai_image_agent, app_name=AI_IMAGE_APP_NAME, session_service=ai_image_session_service)
 COOLDOWN_MS = 15_000
+
+# Hash-based dedup: tracks already-analyzed image src hashes within process lifetime
+_analyzed_image_hashes: set[str] = set()
 
 
 class AnalyzeRequest(BaseModel):
     image: str    # base64 data URL
     metadata: dict
     timestamp: int
+
+
+class AnalyzeImageRequest(BaseModel):
+    image: str    # base64 data URL (for same-origin) or empty string
+    url: str      # image src URL (for cross-origin, backend fetches it)
+    context: str  # page URL for session keying
+    timestamp: int
+    image_hash: str  # short hash of src URL for dedup
 
 
 @app.post("/api/analyze")
@@ -100,6 +114,81 @@ async def analyze_frame(request: AnalyzeRequest):
     if result.get("action") != "none":
         session.state["last_intervention_time"] = request.timestamp
 
+    return result
+
+
+@app.post("/api/analyze-image")
+async def analyze_image(request: AnalyzeImageRequest):
+    # Dedup: skip if we've already analyzed this image in this session
+    if request.image_hash in _analyzed_image_hashes:
+        return {"is_ai_generated": False, "confidence": 0.0, "reasoning": "Already analyzed"}
+    _analyzed_image_hashes.add(request.image_hash)
+
+    session_id = f"aiimg-{request.image_hash}"
+    user_id = "extension-user"
+
+    session = await ai_image_session_service.get_session(
+        app_name=AI_IMAGE_APP_NAME, user_id=user_id, session_id=session_id
+    )
+    if session is None:
+        session = await ai_image_session_service.create_session(
+            app_name=AI_IMAGE_APP_NAME,
+            user_id=user_id,
+            session_id=session_id,
+            state={},
+        )
+
+    parts = [Part(text=f"Analyze this image from page: {request.context}")]
+
+    if request.image:
+        # Same-origin: base64 data provided directly
+        raw_b64 = request.image.split(",")[1] if "," in request.image else request.image
+        # Detect mime type from data URL prefix
+        mime = "image/jpeg"
+        if request.image.startswith("data:image/png"):
+            mime = "image/png"
+        elif request.image.startswith("data:image/webp"):
+            mime = "image/webp"
+        parts.append(Part(inline_data={"mime_type": mime, "data": raw_b64}))
+    elif request.url:
+        # Cross-origin: fetch server-side to bypass CORS
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(request.url, headers={"User-Agent": "Mozilla/5.0"})
+                if resp.status_code == 200:
+                    import base64
+                    img_b64 = base64.b64encode(resp.content).decode()
+                    content_type = resp.headers.get("content-type", "image/jpeg").split(";")[0]
+                    parts.append(Part(inline_data={"mime_type": content_type, "data": img_b64}))
+                else:
+                    return {"is_ai_generated": False, "confidence": 0.0, "reasoning": "Could not fetch image"}
+        except Exception as e:
+            return {"is_ai_generated": False, "confidence": 0.0, "reasoning": f"Fetch error: {str(e)}"}
+    else:
+        return {"is_ai_generated": False, "confidence": 0.0, "reasoning": "No image data provided"}
+
+    new_message = Content(role="user", parts=parts)
+
+    final_response = None
+    async for event in ai_image_runner.run_async(
+        user_id=user_id, session_id=session_id, new_message=new_message
+    ):
+        if event.is_final_response() and event.content and event.content.parts:
+            for part in event.content.parts:
+                if hasattr(part, "text") and part.text:
+                    final_response = part.text
+                    break
+
+    if not final_response:
+        return {"is_ai_generated": False, "confidence": 0.0, "reasoning": "No response from model"}
+
+    try:
+        result = json.loads(final_response)
+    except (json.JSONDecodeError, TypeError):
+        return {"is_ai_generated": False, "confidence": 0.0, "reasoning": "Parse error"}
+
+    print(f"[AI Image] hash={request.image_hash} is_ai={result.get('is_ai_generated')} conf={result.get('confidence'):.2f} | {result.get('reasoning', '')[:80]}")
     return result
 
 

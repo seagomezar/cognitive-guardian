@@ -28,7 +28,11 @@ const I18n = {
       terms_link: "Terms & About",
       about_title: "About Cognitive Guardian",
       about_content:
-        "Cognitive Guardian acts as your digital immune system. It takes anonymous snapshots of your active tab solely to detect manipulation patterns (Phishing, Fake News) and burnout. Data is sent to an ADK model and discarded immediately after analysis. We do not store your browsing history.",
+        "Cognitive Guardian acts as your digital immune system. It takes anonymous snapshots of your active tab solely to detect manipulation patterns (Phishing, Fake News) and burnout. Data is sent to an ADK model and discarded immediately after analysis. We do not store your browsing history. This project was built for the Gemini Live Agent Challenge.",
+      btn_analytics: "View Analytics",
+      analytics_title: "Your Stats",
+      stat_helped: "Times Helped",
+      stat_rejected: "Rejected Advice",
     },
     es: {
       subtitle: "Tu sistema inmunológico digital.",
@@ -57,7 +61,11 @@ const I18n = {
       terms_link: "Términos y Acerca de",
       about_title: "Acerca de Cognitive Guardian",
       about_content:
-        "Cognitive Guardian actúa como tu sistema inmunológico digital. Toma capturas anónimas de tu pestaña activa únicamente para detectar patrones de manipulación (Phishing, Fake News) y burnout. Los datos se envían a un modelo ADK y se descartan inmediatamente después del análisis. No guardamos tu historial de navegación.",
+        "Cognitive Guardian actúa como tu sistema inmunológico digital. Toma capturas anónimas de tu pestaña activa únicamente para detectar patrones de manipulación (Phishing, Fake News) y burnout. Los datos se envían a un modelo ADK y se descartan inmediatamente después del análisis. No guardamos tu historial de navegación. Este proyecto fue construido para el Gemini Live Agent Challenge.",
+      btn_analytics: "Ver Estadísticas",
+      analytics_title: "Tus Estadísticas",
+      stat_helped: "Veces de Ayuda",
+      stat_rejected: "Rechazados",
     },
     pt: {
       subtitle: "Seu sistema imunológico digital.",
@@ -86,7 +94,11 @@ const I18n = {
       terms_link: "Termos e Sobre",
       about_title: "Sobre o Cognitive Guardian",
       about_content:
-        "O Cognitive Guardian atua como seu sistema imunológico digital. Ele tira capturas anônimas da sua guia ativa apenas para detectar padrões de manipulação (Phishing, Fake News) e esgotamento. Os dados são enviados para um modelo ADK e descartados imediatamente após a análise. Não armazenamos seu histórico de navegação.",
+        "O Cognitive Guardian atua como seu sistema imunológico digital. Ele tira capturas anônimas da sua guia ativa apenas para detectar padrões de manipulação (Phishing, Fake News) e esgotamento. Os dados são enviados para um modelo ADK e descartados imediatamente após a análise. Não armazenamos seu histórico de navegação. Este projeto foi desenvolvido para o Gemini Live Agent Challenge.",
+      btn_analytics: "Ver Estatísticas",
+      analytics_title: "Suas Estatísticas",
+      stat_helped: "Vezes Ajudou",
+      stat_rejected: "Conselhos Rejeitados",
     },
     fr: {
       subtitle: "Votre système immunitaire numérique.",
@@ -117,7 +129,11 @@ const I18n = {
       terms_link: "Conditions et À propos",
       about_title: "À propos de Cognitive Guardian",
       about_content:
-        "Cognitive Guardian agit comme votre système immunitaire numérique. Il prend des captures anonymes de votre onglet actif uniquement pour détecter des modèles de manipulation (Phishing, Fake News) et d'épuisement. Les données sont envoyées à un modèle ADK et supprimées immédiatement après analyse. Nous ne conservons pas votre historique de navigation.",
+        "Cognitive Guardian agit comme votre système immunitaire numérique. Il prend des captures anonymes de votre onglet actif uniquement pour détecter des modèles de manipulation (Phishing, Fake News) et d'épuisement. Les données sont envoyées à un modèle ADK et supprimées immédiatement après analyse. Nous ne conservons pas votre historique de navigation. Ce projet a été créé pour le Gemini Live Agent Challenge.",
+      btn_analytics: "Voir Statistiques",
+      analytics_title: "Vos Statistiques",
+      stat_helped: "Fois Aidé",
+      stat_rejected: "Avis Rejetés",
     },
   },
 

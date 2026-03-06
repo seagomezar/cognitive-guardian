@@ -6,30 +6,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const langSelect = document.getElementById("langSelect");
   const consentCb = document.getElementById("consentCb");
   const errorMsg = document.getElementById("errorMsg");
+  const analyticsBtn = document.getElementById("analyticsBtn");
 
   // Elements for i18n
   const elSubtitle = document.getElementById("el_subtitle");
   const elLangLabel = document.getElementById("el_lang_label");
   const elConsentLabel = document.getElementById("el_consent_label");
   const elTermsLink = document.getElementById("el_terms_link");
-  const elAnalyticsTitle = document.getElementById("el_analytics_title");
-  const elStatHelped = document.getElementById("el_stat_helped");
-  const elStatRejected = document.getElementById("el_stat_rejected");
-  const statHelped = document.getElementById("stat_helped");
-  const statRejected = document.getElementById("stat_rejected");
 
   let isMonitoring = false;
   let currentLocale = await I18n.getCurrentLocale();
 
-  // Load consent checked state and analytics from storage
-  chrome.storage.local.get(["cg_consent", "cg_analytics"], function (result) {
+  // Load consent checked state
+  chrome.storage.local.get(["cg_consent"], function (result) {
     if (result.cg_consent) {
       consentCb.checked = true;
-    }
-    if (result.cg_analytics) {
-      if (statHelped) statHelped.textContent = result.cg_analytics.helped || 0;
-      if (statRejected)
-        statRejected.textContent = result.cg_analytics.rejected || 0;
     }
   });
 
@@ -42,15 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     elConsentLabel.textContent = I18n.tSync(currentLocale, "consent_label");
     elTermsLink.textContent = I18n.tSync(currentLocale, "terms_link");
     errorMsg.textContent = I18n.tSync(currentLocale, "consent_error");
-    if (elAnalyticsTitle)
-      elAnalyticsTitle.textContent = I18n.tSync(
-        currentLocale,
-        "analytics_title",
-      );
-    if (elStatHelped)
-      elStatHelped.textContent = I18n.tSync(currentLocale, "stat_helped");
-    if (elStatRejected)
-      elStatRejected.textContent = I18n.tSync(currentLocale, "stat_rejected");
+    analyticsBtn.textContent = I18n.tSync(currentLocale, "btn_analytics");
     updateUI(); // This translates the button and status text
   }
 
@@ -96,6 +79,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   consentCb.addEventListener("change", () => {
     chrome.storage.local.set({ cg_consent: consentCb.checked });
     if (consentCb.checked) errorMsg.style.display = "none";
+  });
+
+  // Open analytics page
+  analyticsBtn.addEventListener("click", () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL("analytics.html") });
   });
 
   // Toggle button click

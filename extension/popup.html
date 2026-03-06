@@ -141,6 +141,55 @@
         font-size: 13px;
         cursor: pointer;
       }
+
+      .analytics-container {
+        margin-top: 15px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .analytics-header {
+        background: #f8fafc;
+        padding: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .analytics-stats {
+        display: flex;
+        justify-content: space-around;
+        padding: 10px;
+      }
+
+      .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .stat-box.helped .stat-value {
+        color: #10b981;
+      }
+
+      .stat-box.rejected .stat-value {
+        color: #ef4444;
+      }
+
+      .stat-label {
+        font-size: 10px;
+        color: #64748b;
+        margin-top: 2px;
+        text-transform: uppercase;
+      }
     </style>
   </head>
 
@@ -151,6 +200,23 @@
     <div style="margin: 15px 0">
       <span id="statusIndicator" class="status-indicator"></span>
       <span id="statusText">Inactivo</span>
+    </div>
+
+    <div class="analytics-container">
+      <div class="analytics-header">
+        <span class="icon" style="font-size: 14px">📊</span>
+        <span id="el_analytics_title">Tus Estadísticas</span>
+      </div>
+      <div class="analytics-stats">
+        <div class="stat-box helped">
+          <div class="stat-value" id="stat_helped">0</div>
+          <div class="stat-label" id="el_stat_helped">Veces de Ayuda</div>
+        </div>
+        <div class="stat-box rejected">
+          <div class="stat-value" id="stat_rejected">0</div>
+          <div class="stat-label" id="el_stat_rejected">Rechazados</div>
+        </div>
+      </div>
     </div>
 
     <div class="consent-container">

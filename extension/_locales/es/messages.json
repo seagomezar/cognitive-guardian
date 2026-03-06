@@ -1,8 +1,8 @@
 {
-    "extName": {
-        "message": "Cognitive Guardian"
-    },
-    "extDesc": {
-        "message": "Tu sistema inmunológico digital. Te protege de manipulación, desinformación y pérdida de atención."
-    }
+  "extName": {
+    "message": "Cognitive Guardian"
+  },
+  "extDesc": {
+    "message": "Tu sistema inmunológico digital. Te protege de manipulación, desinformación y pérdida de atención."
+  }
 }

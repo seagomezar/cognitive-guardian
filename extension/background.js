@@ -145,6 +145,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ isMonitoring: isMonitoring });
   } else if (message.command === "SUBMIT_FEEDBACK") {
     console.log("📝 User Feedback sent to ADK Model:", message.payload);
+
+    // Process analytics: Helped (Yes + Ignored) vs Rejected (No)
+    chrome.storage.local.get(["cg_analytics"], function (result) {
+      let analytics = result.cg_analytics || { helped: 0, rejected: 0 };
+
+      if (message.payload.vote === "up" || message.payload.vote === "ignored") {
+        analytics.helped++;
+      } else if (message.payload.vote === "down") {
+        analytics.rejected++;
+      }
+
+      chrome.storage.local.set({ cg_analytics: analytics });
+    });
+
     // TODO: In the real implementation, we send a POST to ADK
     // fetch(`${BACKEND_URL}/api/feedback`, { method: "POST", body: ... })
   }

@@ -145,6 +145,17 @@ function showOverlay(alertData) {
   // Close functionality
   const closeBtn = alertBox.querySelector(".cg-close-btn");
   closeBtn.addEventListener("click", () => {
+    if (!feedbackContainer.querySelector(".cg-feedback-thanks")) {
+      chrome.runtime.sendMessage({
+        command: "SUBMIT_FEEDBACK",
+        payload: {
+          originalAlert: alertData,
+          vote: "ignored",
+          comment: "",
+        },
+      });
+    }
+
     alertBox.classList.add("cg-fade-out");
     setTimeout(() => {
       if (overlay.contains(alertBox)) overlay.removeChild(alertBox);
@@ -157,6 +168,16 @@ function showOverlay(alertData) {
   if (alertData.type !== "phishing") {
     setTimeout(() => {
       if (overlay.contains(alertBox)) {
+        if (!feedbackContainer.querySelector(".cg-feedback-thanks")) {
+          chrome.runtime.sendMessage({
+            command: "SUBMIT_FEEDBACK",
+            payload: {
+              originalAlert: alertData,
+              vote: "ignored",
+              comment: "",
+            },
+          });
+        }
         alertBox.classList.add("cg-fade-out");
         setTimeout(() => {
           if (overlay.contains(alertBox)) overlay.removeChild(alertBox);

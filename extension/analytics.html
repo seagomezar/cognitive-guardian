@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Analytics - Cognitive Guardian</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 40px 20px;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          sans-serif;
+        background-color: #f8fafc;
+        color: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .container {
+        max-width: 500px;
+        width: 100%;
+        background: white;
+        border-radius: 12px;
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.05),
+          0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: #8b5cf6;
+        color: white;
+        padding: 24px;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .analytics-stats {
+        display: flex;
+        justify-content: space-around;
+        gap: 20px;
+      }
+
+      .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        transition: transform 0.2s;
+      }
+
+      .stat-box:hover {
+        transform: translateY(-2px);
+      }
+
+      .stat-value {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .stat-box.helped .stat-value {
+        color: #10b981;
+      }
+
+      .stat-box.rejected .stat-value {
+        color: #ef4444;
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-back {
+        display: block;
+        margin: 30px auto 0;
+        padding: 10px 20px;
+        background: white;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-back:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>
+          <span class="icon">📊</span>
+          <span id="el_analytics_title">Your Stats</span>
+        </h1>
+      </div>
+      <div class="content">
+        <div class="analytics-stats">
+          <div class="stat-box helped">
+            <div class="stat-value" id="stat_helped">0</div>
+            <div class="stat-label" id="el_stat_helped">Times Helped</div>
+          </div>
+          <div class="stat-box rejected">
+            <div class="stat-value" id="stat_rejected">0</div>
+            <div class="stat-label" id="el_stat_rejected">Rejected Advice</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="btnClose" class="btn-back">Close</button>
+
+    <script src="i18n.js"></script>
+    <script src="analytics.js"></script>
+  </body>
+</html>

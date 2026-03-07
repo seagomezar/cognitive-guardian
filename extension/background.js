@@ -5,9 +5,25 @@ console.log("Cognitive Guardian: Background service worker started.");
 const BACKEND_URL = "http://localhost:8000"; // ADK endpoint TODO
 let captureInterval = null;
 let isMonitoring = false;
+
+// Keeps track of alerts shown per tab to prevent spamming
+const alertCooldowns = new Map(); // Map<tabId, { url: string, types: Set<string> }>
+
+// Clear cooldown cache on navigation or tab close
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    alertCooldowns.delete(tabId);
+  }
+});
+chrome.tabs.onRemoved.addListener((tabId) => {
+  alertCooldowns.delete(tabId);
+});
 // API functions
-async function sendFrameToBackend(dataUrl, metadata) {
-  console.log("📸 Frame captured, sending to backend:", metadata.url.substring(0, 50));
+async function sendFrameToBackend(dataUrl, metadata, activeTab) {
+  console.log(
+    "📸 Frame captured, sending to backend:",
+    metadata.url.substring(0, 50),
+  );
   const locale = await I18n.getCurrentLocale();
   const timestamp = Date.now();
 
@@ -26,6 +42,24 @@ async function sendFrameToBackend(dataUrl, metadata) {
     const result = await response.json();
     if (!result || result.action === "none") return;
 
+    // Cooldown Check: Prevent repeating the same alert type on the same URL
+    const tabId = activeTab.id;
+    let tabHistory = alertCooldowns.get(tabId);
+    if (!tabHistory || tabHistory.url !== activeTab.url) {
+      tabHistory = { url: activeTab.url, types: new Set() };
+      alertCooldowns.set(tabId, tabHistory);
+    }
+
+    if (tabHistory.types.has(result.type)) {
+      console.log(
+        `⏳ Cooldown active: Skipping repeated '${result.type}' alert.`,
+      );
+      return;
+    }
+
+    // Mark this alert type as triggered for this page
+    tabHistory.types.add(result.type);
+
     result.locale = locale;
     result.timestamp = timestamp;
     result.feedbackAskText = I18n.tSync(locale, "feedback_ask");
@@ -36,36 +70,30 @@ async function sendFrameToBackend(dataUrl, metadata) {
     result.feedbackSubmitText = I18n.tSync(locale, "feedback_submit");
 
     console.log("🤖 ADK Analysis result:", result);
-    handleAgentAction(result);
+    handleAgentAction(result, activeTab);
   } catch (error) {
     console.error("Failed to contact backend:", error);
     // Graceful degradation: skip this frame silently
   }
 }
 
-function handleAgentAction(result) {
+function handleAgentAction(result, activeTab) {
   if (!result || !result.action || result.action === "none") return;
 
-  // Find active tab to send message
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs.length === 0) return;
-
-    const activeTab = tabs[0];
-    chrome.tabs.sendMessage(
-      activeTab.id,
-      {
-        type: "AGENT_INTERVENTION",
-        payload: result,
-      },
-      function () {
-        if (chrome.runtime.lastError) {
-          console.warn(
-            "⚠️ Error: Content script not found. Please refresh the web page you are trying to analyze.",
-          );
-        }
-      },
-    );
-  });
+  chrome.tabs.sendMessage(
+    activeTab.id,
+    {
+      type: "AGENT_INTERVENTION",
+      payload: result,
+    },
+    function () {
+      if (chrome.runtime.lastError) {
+        console.warn(
+          "⚠️ Error: Content script not found. Please refresh the web page you are trying to analyze.",
+        );
+      }
+    },
+  );
 }
 
 // Function to capture the visible tab
@@ -91,7 +119,7 @@ function captureAndSend() {
               url: activeTab.url,
               title: activeTab.title,
             };
-            sendFrameToBackend(dataUrl, metadata);
+            sendFrameToBackend(dataUrl, metadata, activeTab);
           }
         },
       );

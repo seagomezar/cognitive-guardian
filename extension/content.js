@@ -210,6 +210,26 @@ function speakAlert(message, locale) {
   }
 }
 
+function playAudioAlert(actionPayload) {
+  const msg = actionPayload.voice_message || actionPayload.message;
+  if (!msg) return;
+
+  if (actionPayload.audio_data) {
+    try {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      const audio = new Audio(actionPayload.audio_data);
+      audio.play().catch((err) => {
+        console.warn("CG: Audio play failed, falling back to Web Speech:", err);
+        speakAlert(msg, actionPayload.locale || "en");
+      });
+      return;
+    } catch (err) {
+      console.warn("CG: Audio element failed, falling back to Web Speech:", err);
+    }
+  }
+  speakAlert(msg, actionPayload.locale || "en");
+}
+
 // Add voice interaction
 function handleAgentAction(actionPayload) {
   console.log("Cognitive Guardian Intervention:", actionPayload);
@@ -223,8 +243,7 @@ function handleAgentAction(actionPayload) {
     actionPayload.voice_message ||
     actionPayload.message
   ) {
-    const msg = actionPayload.voice_message || actionPayload.message;
-    speakAlert(msg, actionPayload.locale || "en");
+    playAudioAlert(actionPayload);
   }
 }
 

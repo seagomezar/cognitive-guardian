@@ -15,7 +15,7 @@ async function sendFrameToBackend(dataUrl, metadata) {
     const response = await fetch(`${BACKEND_URL}/api/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: dataUrl, metadata, timestamp }),
+      body: JSON.stringify({ image: dataUrl, metadata, timestamp, locale }),
     });
 
     if (!response.ok) {

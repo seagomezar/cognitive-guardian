@@ -11,6 +11,11 @@ import json
 import uvicorn
 from urllib.parse import urlparse
 from pydantic import BaseModel
+import struct
+import base64
+import asyncio
+from google import genai as _genai_tts
+from google.genai import types as _genai_types
 
 app = FastAPI(title="Cognitive Guardian API")
 
@@ -38,6 +43,49 @@ class AnalyzeRequest(BaseModel):
     image: str    # base64 data URL
     metadata: dict
     timestamp: int
+    locale: str = "en"  # BCP-47 language tag, defaults for backwards compatibility
+
+
+_TTS_VOICE_MAP = {"en": "Aoede", "es": "Charon", "fr": "Kore", "pt": "Fenrir"}
+
+def _pcm_to_wav(pcm_data: bytes, sample_rate: int = 24000, channels: int = 1, bits: int = 16) -> bytes:
+    data_size = len(pcm_data)
+    header = struct.pack(
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF", 36 + data_size, b"WAVE", b"fmt ", 16, 1, channels,
+        sample_rate, sample_rate * channels * bits // 8,
+        channels * bits // 8, bits, b"data", data_size,
+    )
+    return header + pcm_data
+
+def _generate_tts_audio_sync(text: str, locale: str) -> str | None:
+    """Synchronous TTS — must be called via asyncio.to_thread()."""
+    if not text:
+        return None
+    voice_name = _TTS_VOICE_MAP.get(locale, "Aoede")
+    try:
+        client = _genai_tts.Client()
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-preview-tts",
+            contents=text,
+            config=_genai_types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=_genai_types.SpeechConfig(
+                    voice_config=_genai_types.VoiceConfig(
+                        prebuilt_voice_config=_genai_types.PrebuiltVoiceConfig(
+                            voice_name=voice_name
+                        )
+                    )
+                ),
+            ),
+        )
+        pcm_bytes = response.candidates[0].content.parts[0].inline_data.data
+        wav_bytes = _pcm_to_wav(pcm_bytes)
+        b64 = base64.b64encode(wav_bytes).decode("utf-8")
+        return f"data:audio/wav;base64,{b64}"
+    except Exception as exc:
+        print(f"[TTS] generation failed: {exc}")
+        return None
 
 
 class AnalyzeImageRequest(BaseModel):
@@ -113,6 +161,13 @@ async def analyze_frame(request: AnalyzeRequest):
     session.state["frame_history"] = history[-10:]
     if result.get("action") != "none":
         session.state["last_intervention_time"] = request.timestamp
+
+    # Generate TTS audio server-side
+    voice_text = result.get("voice_message") or result.get("message")
+    if result.get("action") != "none" and voice_text:
+        audio_data = await asyncio.to_thread(_generate_tts_audio_sync, voice_text, request.locale)
+        if audio_data:
+            result["audio_data"] = audio_data
 
     return result
 

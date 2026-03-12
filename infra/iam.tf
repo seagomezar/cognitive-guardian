@@ -47,3 +47,38 @@ resource "google_project_iam_member" "cicd_storage_admin" {
   role    = "roles/storage.admin"
   member  = "serviceAccount:${google_service_account.cicd_sa.email}"
 }
+
+# CI/CD SA: enable/read APIs (needed for google_project_service resources)
+resource "google_project_iam_member" "cicd_serviceusage_admin" {
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageAdmin"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
+# CI/CD SA: manage project IAM bindings (needed for google_project_iam_member)
+resource "google_project_iam_member" "cicd_iam_admin" {
+  project = var.project_id
+  role    = "roles/resourcemanager.projectIamAdmin"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
+# CI/CD SA: manage service accounts (needed to read/create SAs in Terraform)
+resource "google_project_iam_member" "cicd_sa_admin" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountAdmin"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
+# CI/CD SA: manage secrets (needed for google_secret_manager_secret resources)
+resource "google_project_iam_member" "cicd_secretmanager_admin" {
+  project = var.project_id
+  role    = "roles/secretmanager.admin"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}
+
+# CI/CD SA: manage Artifact Registry (needed for google_artifact_registry_repository)
+resource "google_project_iam_member" "cicd_ar_admin" {
+  project = var.project_id
+  role    = "roles/artifactregistry.admin"
+  member  = "serviceAccount:${google_service_account.cicd_sa.email}"
+}

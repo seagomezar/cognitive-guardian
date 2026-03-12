@@ -48,3 +48,7 @@ Thumbs.db
 # Claude
 .claude/settings.local.json
 memory/
+CLAUDE.md
+.terraform/
+*.tfstate
+*.tfstate.backup

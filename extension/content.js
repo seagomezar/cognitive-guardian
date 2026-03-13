@@ -230,11 +230,26 @@ function playAudioAlert(actionPayload) {
   speakAlert(msg, actionPayload.locale || "en");
 }
 
+// Client-side cooldown guard (safety net against duplicates reaching content.js)
+const _shownAlertTypes = new Map(); // type -> last-shown timestamp
+const ALERT_CLIENT_COOLDOWN_MS = 30_000;
+
 // Add voice interaction
 function handleAgentAction(actionPayload) {
   console.log("Cognitive Guardian Intervention:", actionPayload);
 
   if (actionPayload.action === "alert") {
+    const now = Date.now();
+    const last = _shownAlertTypes.get(actionPayload.type) || 0;
+    if (now - last < ALERT_CLIENT_COOLDOWN_MS) {
+      console.log(`⏳ Client cooldown active: Skipping '${actionPayload.type}' overlay.`);
+      // Still play audio for the suppressed alert
+      if (actionPayload.voice_message || actionPayload.message) {
+        playAudioAlert(actionPayload);
+      }
+      return;
+    }
+    _shownAlertTypes.set(actionPayload.type, now);
     showOverlay(actionPayload);
   }
 

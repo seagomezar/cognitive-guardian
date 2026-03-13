@@ -2,7 +2,7 @@
 importScripts("i18n.js");
 console.log("Cognitive Guardian: Background service worker started.");
 
-const BACKEND_URL = "http://localhost:8000"; // ADK endpoint TODO
+const BACKEND_URL = "https://cognitive-guardian-backend-f4v6sdccmq-uc.a.run.app"; // ADK endpoint TODO
 let captureInterval = null;
 let isMonitoring = false;
 

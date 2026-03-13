@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusText = document.getElementById("statusText");
   const langSelect = document.getElementById("langSelect");
   const consentCb = document.getElementById("consentCb");
+  const muteCb = document.getElementById("muteCb");
   const errorMsg = document.getElementById("errorMsg");
   const analyticsBtn = document.getElementById("analyticsBtn");
 
@@ -12,16 +13,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const elSubtitle = document.getElementById("el_subtitle");
   const elLangLabel = document.getElementById("el_lang_label");
   const elConsentLabel = document.getElementById("el_consent_label");
+  const elMuteLabel = document.getElementById("el_mute_label");
   const elTermsLink = document.getElementById("el_terms_link");
 
   let isMonitoring = false;
   let currentLocale = await I18n.getCurrentLocale();
 
-  // Load consent checked state
-  chrome.storage.local.get(["cg_consent"], function (result) {
-    if (result.cg_consent) {
-      consentCb.checked = true;
-    }
+  // Load consent and mute state
+  chrome.storage.local.get(["cg_consent", "cg_mute_audio"], function (result) {
+    if (result.cg_consent) consentCb.checked = true;
+    if (result.cg_mute_audio) muteCb.checked = true;
   });
 
   // Set initial dropdown value
@@ -31,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     elSubtitle.textContent = I18n.tSync(currentLocale, "subtitle");
     elLangLabel.textContent = I18n.tSync(currentLocale, "lang_label");
     elConsentLabel.textContent = I18n.tSync(currentLocale, "consent_label");
+    elMuteLabel.textContent = I18n.tSync(currentLocale, "mute_label");
     elTermsLink.textContent = I18n.tSync(currentLocale, "terms_link");
     errorMsg.textContent = I18n.tSync(currentLocale, "consent_error");
     analyticsBtn.textContent = I18n.tSync(currentLocale, "btn_analytics");
@@ -79,6 +81,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   consentCb.addEventListener("change", () => {
     chrome.storage.local.set({ cg_consent: consentCb.checked });
     if (consentCb.checked) errorMsg.style.display = "none";
+  });
+
+  // Save mute state to storage
+  muteCb.addEventListener("change", () => {
+    chrome.storage.local.set({ cg_mute_audio: muteCb.checked });
   });
 
   // Open analytics page

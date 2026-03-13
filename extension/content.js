@@ -251,6 +251,37 @@ function handleAgentAction(actionPayload) {
 
 const _analyzedImageHashes = new Set();
 const _imageBadges = new Map(); // imageHash -> badge element
+let _aiFlaggedCount = 0;
+let _aiSummaryEl = null;
+
+function showOrUpdateAiSummary() {
+  if (!_aiSummaryEl) {
+    _aiSummaryEl = document.createElement("div");
+    _aiSummaryEl.className = "cg-ai-summary";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "cg-ai-summary-close";
+    closeBtn.textContent = "×";
+    closeBtn.addEventListener("click", () => {
+      if (_aiSummaryEl) {
+        _aiSummaryEl.remove();
+        _aiSummaryEl = null;
+      }
+    });
+    _aiSummaryEl.appendChild(closeBtn);
+    const msg = document.createElement("span");
+    msg.className = "cg-ai-summary-text";
+    _aiSummaryEl.appendChild(msg);
+    document.body.appendChild(_aiSummaryEl);
+    setTimeout(() => {
+      if (_aiSummaryEl) {
+        _aiSummaryEl.classList.add("cg-fade-out");
+        setTimeout(() => { if (_aiSummaryEl) { _aiSummaryEl.remove(); _aiSummaryEl = null; } }, 300);
+      }
+    }, 8000);
+  }
+  _aiSummaryEl.querySelector(".cg-ai-summary-text").textContent =
+    `🤖 ${_aiFlaggedCount} AI-generated image${_aiFlaggedCount === 1 ? "" : "s"} detected on this page`;
+}
 
 function hashString(str) {
   // Simple djb2 hash for dedup (not crypto)
@@ -262,11 +293,11 @@ function hashString(str) {
 }
 
 function attachImageBadge(img, imageHash) {
-  // Position a small warning badge over the image
+  // Position a compact icon badge over the image
   const badge = document.createElement("div");
   badge.className = "cg-ai-badge";
   badge.setAttribute("data-cg-hash", imageHash);
-  badge.textContent = "🤖 Possible AI image";
+  badge.textContent = "🤖";
   badge.title = "Cognitive Guardian: This image may be AI-generated";
 
   // Ensure the parent is positioned so the badge can be absolute
@@ -280,6 +311,8 @@ function attachImageBadge(img, imageHash) {
   }
 
   _imageBadges.set(imageHash, badge);
+  _aiFlaggedCount++;
+  showOrUpdateAiSummary();
 }
 
 function extractAndSendImage(img) {
@@ -377,12 +410,23 @@ function startAiImageScanning() {
 function stopAiImageScanning() {
   _aiImageScanActive = false;
   _imageObserver.disconnect();
+  _aiFlaggedCount = 0;
+  if (_aiSummaryEl) {
+    _aiSummaryEl.remove();
+    _aiSummaryEl = null;
+  }
 }
 
 // Receive messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "AGENT_INTERVENTION") {
-    handleAgentAction(message.payload);
+    const payload = message.payload;
+    // Suppress overlay for aiimage when per-image badges already cover the page
+    if (payload.type === "aiimage" && _aiFlaggedCount > 0) {
+      playAudioAlert(payload);
+    } else {
+      handleAgentAction(payload);
+    }
   } else if (message.type === "IMAGE_FLAGGED") {
     const { imageHash } = message.payload;
     // Find the image with this hash and attach a badge

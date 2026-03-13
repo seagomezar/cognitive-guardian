@@ -33,6 +33,7 @@ const I18n = {
       analytics_title: "Your Stats",
       stat_helped: "Times Helped",
       stat_rejected: "Rejected Advice",
+      mute_label: "Mute audio alerts",
     },
     es: {
       subtitle: "Tu sistema inmunológico digital.",
@@ -66,6 +67,7 @@ const I18n = {
       analytics_title: "Tus Estadísticas",
       stat_helped: "Veces de Ayuda",
       stat_rejected: "Rechazados",
+      mute_label: "Silenciar alertas de audio",
     },
     pt: {
       subtitle: "Seu sistema imunológico digital.",
@@ -99,6 +101,7 @@ const I18n = {
       analytics_title: "Suas Estatísticas",
       stat_helped: "Vezes Ajudou",
       stat_rejected: "Conselhos Rejeitados",
+      mute_label: "Silenciar alertas de áudio",
     },
     fr: {
       subtitle: "Votre système immunitaire numérique.",
@@ -134,6 +137,7 @@ const I18n = {
       analytics_title: "Vos Statistiques",
       stat_helped: "Fois Aidé",
       stat_rejected: "Avis Rejetés",
+      mute_label: "Désactiver les alertes audio",
     },
   },
 

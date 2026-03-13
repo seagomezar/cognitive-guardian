@@ -1,6 +1,12 @@
 // extension/content.js
 console.log("Cognitive Guardian: Content script injected.");
 
+let _isMuted = false;
+chrome.storage.local.get(["cg_mute_audio"], (r) => { _isMuted = !!r.cg_mute_audio; });
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.cg_mute_audio) _isMuted = !!changes.cg_mute_audio.newValue;
+});
+
 // Intervene visually
 function showOverlay(alertData) {
   // Check if overlay already exists
@@ -211,6 +217,7 @@ function speakAlert(message, locale) {
 }
 
 function playAudioAlert(actionPayload) {
+  if (_isMuted) return;
   const msg = actionPayload.voice_message || actionPayload.message;
   if (!msg) return;
 

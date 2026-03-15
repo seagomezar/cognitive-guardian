@@ -29,7 +29,7 @@ The project consists of two tightly-coupled but responsibilities-separated pilla
 1. **The Sensor / Actuator (Frontend):** A Chrome Extension (Manifest V3) that runs a Service Worker (`background.js`) to capture the active tab's visual state. It communicates with the backend and uses a Content Script to inject non-intrusive UI alerts, CSS highlighting, and read text aloud. Includes an internationalized (i18n) settings and analytics popup.
 2. **The Agent Engine (Backend):** A **FastAPI** server (served via uvicorn) that exposes `POST /api/analyze`. It receives visual frames from the extension and runs them through an ADK `LlmAgent` backed by **Gemini 2.5 Flash**. The agent returns a structured `GuardianDecision` JSON (action, type, message, confidence). Sessions are managed per-domain using ADK's `InMemorySessionService` (session ID = `cg-<domain>`), with a 15-second cooldown between interventions and a rolling 10-frame history for context.
 
-_(Please refer to the architecture diagram uploaded in the Devpost submission)._
+![Cognitive Guardian Architecture](diagram_cognitive_guardian_architecture.jpeg)
 
 ---
 
@@ -121,7 +121,7 @@ All snapshot data sent to the Gemini API is ephemeral. The extension specificall
 
 - [ ] **Video Demo (< 4 min):** `[Insert YouTube Link]`
 - [ ] **Proof of Google Cloud Deployment:** `[Insert GCP Console screenshot/recording link]`
-- [ ] **Architecture Diagram:** `[Insert Link to Image]`
+- [x] **Architecture Diagram:** See `diagram_cognitive_guardian_architecture.jpeg` above
 - [ ] **Public Code Repo:** `[Insert GitHub Link]`
 
 _Created with ❤️ for the Gemini Live Agent Challenge._

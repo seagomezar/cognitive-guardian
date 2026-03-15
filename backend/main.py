@@ -122,16 +122,29 @@ async def analyze_frame(request: AnalyzeRequest):
     mime = "image/jpeg"
 
     history = session.state.get("frame_history", [])
-    history_text = (
-        f"Recent URLs visited: {[h.get('url', '') for h in history[-5:]]}"
-        if history
-        else ""
+
+    # Count consecutive frames on the current domain (for doomscrolling detection)
+    current_domain = urlparse(url).netloc
+    consecutive_same_domain = 0
+    for h in reversed(history[-10:]):
+        if urlparse(h.get("url", "")).netloc == current_domain:
+            consecutive_same_domain += 1
+        else:
+            break
+
+    history_text = f"Recent URLs visited: {[h.get('url', '') for h in history[-5:]]}" if history else ""
+    context_text = (
+        f"Analyze this browser screenshot.\n"
+        f"URL: {url}\nTitle: {title}\n"
+        f"consecutive_same_domain: {consecutive_same_domain}\n"
+        f"consecutive_social_frames: {consecutive_same_domain}\n"
+        f"{history_text}"
     )
 
     new_message = Content(
         role="user",
         parts=[
-            Part(text=f"Analyze this browser screenshot.\nURL: {url}\nTitle: {title}\n{history_text}"),
+            Part(text=context_text),
             Part(inline_data={"mime_type": mime, "data": raw_b64}),
         ],
     )
@@ -154,7 +167,7 @@ async def analyze_frame(request: AnalyzeRequest):
     except (json.JSONDecodeError, TypeError):
         return {"action": "none"}
 
-    if result.get("confidence", 0) < 0.7:
+    if result.get("confidence", 0) < 0.65:
         return {"action": "none"}
 
     history.append({"timestamp": request.timestamp, "url": url, "title": title})

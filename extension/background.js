@@ -7,14 +7,10 @@ let captureInterval = null;
 let isMonitoring = false;
 
 // Keeps track of alerts shown per tab to prevent spamming
-const alertCooldowns = new Map(); // Map<tabId, { url: string, types: Set<string> }>
+const ALERT_COOLDOWN_MS = 30_000;
+const alertCooldowns = new Map(); // Map<tabId, Map<type, timestamp>>
 
-// Clear cooldown cache on navigation or tab close
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url) {
-    alertCooldowns.delete(tabId);
-  }
-});
+// Clean up on tab close
 chrome.tabs.onRemoved.addListener((tabId) => {
   alertCooldowns.delete(tabId);
 });
@@ -42,23 +38,23 @@ async function sendFrameToBackend(dataUrl, metadata, activeTab) {
     const result = await response.json();
     if (!result || result.action === "none") return;
 
-    // Cooldown Check: Prevent repeating the same alert type on the same URL
+    // Cooldown Check: Prevent repeating the same alert type within 30s
     const tabId = activeTab.id;
-    let tabHistory = alertCooldowns.get(tabId);
-    if (!tabHistory || tabHistory.url !== activeTab.url) {
-      tabHistory = { url: activeTab.url, types: new Set() };
-      alertCooldowns.set(tabId, tabHistory);
+    let tabCooldowns = alertCooldowns.get(tabId);
+    if (!tabCooldowns) {
+      tabCooldowns = new Map();
+      alertCooldowns.set(tabId, tabCooldowns);
     }
 
-    if (tabHistory.types.has(result.type)) {
+    const lastShown = tabCooldowns.get(result.type) || 0;
+    if (Date.now() - lastShown < ALERT_COOLDOWN_MS) {
       console.log(
-        `⏳ Cooldown active: Skipping repeated '${result.type}' alert.`,
+        `⏳ Cooldown active: Skipping '${result.type}' alert.`,
       );
       return;
     }
 
-    // Mark this alert type as triggered for this page
-    tabHistory.types.add(result.type);
+    tabCooldowns.set(result.type, Date.now());
 
     result.locale = locale;
     result.timestamp = timestamp;
